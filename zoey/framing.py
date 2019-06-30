@@ -10,6 +10,8 @@ ExtensionRsvs = namedtuple("ExtensionRsvs", "rsv1 rsv2 rsv3")
 
 def unpack_from(fmt: str, stream: BinaryIO):
     size = calcsize(fmt)
+    if stream.closed:
+        raise InterruptedError("Socket Closed")
     data = stream.read(size)
     return unpack(fmt, data)
 

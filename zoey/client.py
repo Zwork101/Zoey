@@ -9,14 +9,14 @@ from zoey.handshake import WebsocketUpgrade, ServerResponse
 from zoey.utils import ConnectionStatus
 
 from gevent import spawn
-import gevent._ssl3 as ssl
-import gevent._socket3 as socket
+import gevent.ssl as ssl
+import gevent.socket as socket
 
 
 class Client:
 
     WS_PORT = 80, 443
-    MAX_SIZE = (2 ** 64) - 1
+    MAX_SIZE = 0xFFFFFFFFFFFFFFFF
 
     def __init__(self, ws_uri: str, *extensions: Type[Extension], origin: str=None,
                  host: str=None, context: ssl.SSLContext=None):
@@ -68,6 +68,7 @@ class Client:
                 urandom(4) if not self.is_secure else None
             )
             self.trigger("before_frame", frame)
+            print(frame.build())
             self.socket.send(frame.build())
 
     @property
@@ -87,7 +88,8 @@ class Client:
 
     def connect(self):
         self.status = ConnectionStatus.CONNECTING
-        self.socket.connect((self.uri.hostname, self.WS_PORT[1] if self.is_secure else self.WS_PORT[0]))
+        port = self.uri.port or (self.WS_PORT[1] if self.is_secure else self.WS_PORT[0])
+        self.socket.connect((self.uri.hostname, port))
         upgrade = WebsocketUpgrade(self.uri, self.extensions, **self.overwrites)
         data = upgrade.build()
         self.socket.send(data)
